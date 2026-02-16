@@ -1,0 +1,147 @@
+{
+    "r-small": {
+        "git": {
+            "required": false,
+            "install_hint": {
+                "windows": {
+                    "winget": "In Terminal, run:\nwinget install -e --id Git.Git"
+                },
+                "macos": {
+                    "brew": "In Terminal, run:\nxcode-select --install",
+                    "direct": "In Terminal, run:\nxcode-select --install"
+                }
+            },
+            "check": {
+                "type": "cli",
+                "command": "git"
+            },
+            "message": "Version control won't be available.\nThe help page explains how to do version control with `git` and why it is useful:\nhttps://recap-org.github.io/docs/version-control/"
+        },
+        "R": {
+            "required": true,
+            "min_version": "4.5",
+            "install_hint": {
+                "windows": {
+                    "winget": "In Terminal, run:\nwinget install -e --id RProject.R"
+                },
+                "macos": {
+                    "brew": "In Terminal, run:\nbrew install --cask r-app",
+                    "direct": "Download from:\nhttps://cran.r-project.org\nThen reopen your terminal."
+                }
+            },
+            "check": {
+                "type": "cli",
+                "command": "R"
+            },
+            "message": "R is required to run analyses and generate results in RECAP R projects."
+        },
+        "Quarto": {
+            "required": true,
+            "min_version": "1.8",
+            "install_hint": {
+                "windows": {
+                    "winget": "In Terminal, run:\nwinget install -e --id Posit.Quarto"
+                },
+                "macos": {
+                    "brew": "In Terminal, run:\nbrew install quarto",
+                    "direct": "Download from:\nhttps://quarto.org/docs/get-started/\nThen reopen your terminal."
+                }
+            },
+            "check": {
+                "type": "cli",
+                "command": "quarto"
+            },
+            "message": "Quarto is required to build reproducible reports and documents in RECAP projects."
+        },
+        "LaTeX": {
+            "required": false,
+            "install_hint": {
+                "windows": {
+                    "winget": "In Terminal, run:\nquarto install tinytex"
+                },
+                "macos": {
+                    "brew": "In Terminal, run:\nquarto install tinytex",
+                    "direct": "In Terminal, run:\nquarto install tinytex"
+                }
+            },
+            "check": {
+                "type": "cli",
+                "command": "latexmk"
+            },
+            "message": "You won't be able to render Quarto reports as PDFs."
+        }
+    },
+    "r-medium": {
+        "extends": "r-small",
+        "LaTeX": {
+            "required": true,
+            "install_hint": {
+                "windows": {
+                    "winget": "In Terminal, run:\nquarto install tinytex"
+                },
+                "macos": {
+                    "brew": "In Terminal, run:\nquarto install tinytex",
+                    "direct": "In Terminal, run:\nquarto install tinytex"
+                }
+            },
+            "check": {
+                "type": "cli",
+                "command": "latexmk"
+            },
+            "message": "You won't be able to render Quarto reports as PDFs (the template's default)."
+        },
+        "make": {
+            "required": true,
+            "install_hint": {
+                "windows": {
+                    "winget": "In Terminal, run:\nwinget install -e --id ezwinports.make"
+                },
+                "macos": {
+                    "brew": "In Terminal, run:\nxcode-select --install",
+                    "direct": "In Terminal, run:\nxcode-select --install"
+                }
+            },
+            "check": {
+                "type": "cli",
+                "command": "make"
+            },
+            "message": "Automated builds with `make` will be unavailable.\nThe help page explains what `make` is and why it is useful:\nhttps://recap-org.github.io/docs/building-with-make.html"
+        }
+    },
+    "r-large": {
+        "extends": "r-medium",
+        "renv": {
+            "required": true,
+            "min_version": "1.1",
+            "install_hint": {
+                "windows": {
+                    "winget": "In Terminal, run:\nRScript -e \"install.packages('renv')\""
+                },
+                "macos": {
+                    "brew": "In Terminal, run:\nRScript -e \"install.packages('renv')\"",
+                    "direct": "In Terminal, run:\nRScript -e \"install.packages('renv')\""
+                }
+            },
+            "check": {
+                "type": "r_package",
+                "package": "renv"
+            },
+            "message": "Dependency management will be unavailable.\nThe help page explains what dependency management is and why it is useful:\nhttps://recap-org.github.io/docs/dependency-management.html."
+        },
+        "LaTeX": {
+            "required": true,
+            "install_hint": {
+                "windows": "In terminal, run:\nwinget install -e --id MiKTeX.MiKTeX\nThen open MikTeX to set it up and restart your computer.",
+                "macos": {
+                    "brew": "In Terminal, run:\nbrew install --cask mactex-no-gui\nThen reopen your terminal.",
+                    "direct": "Download from:\nhttps://www.tug.org/mactex/mactex-download.html\nThen reopen your terminal."
+                }
+            },
+            "check": {
+                "type": "cli",
+                "command": "latexmk"
+            },
+            "message": "You won't be able to compile Quarto reports nor final deliverables (article, appendix, presentation)."
+        }
+    }
+}
