@@ -131,7 +131,9 @@
         "LaTeX": {
             "required": true,
             "install_hint": {
-                "windows": "In terminal, run:\nwinget install -e --id MiKTeX.MiKTeX\nThen open MikTeX to set it up and restart your computer.",
+                "windows": {
+                    "winget": "In terminal, run:\nwinget install -e --id MiKTeX.MiKTeX\nThen open MikTeX to set it up and restart your computer."
+                },
                 "macos": {
                     "brew": "In Terminal, run:\nbrew install --cask mactex-no-gui\nThen reopen your terminal.",
                     "direct": "Download from:\nhttps://www.tug.org/mactex/mactex-download.html\nThen reopen your terminal."
