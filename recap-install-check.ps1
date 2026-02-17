@@ -136,6 +136,95 @@ function Test-RPackage {
     }
 }
 
+# Function to check if TeX is available
+# Strategy:
+# 1) Try latexmk (same as cli check)
+# 2) If not found, parse `quarto check` output
+function Test-Tex {
+    $latexmkResult = Test-CliTool -Command "latexmk"
+    if ($latexmkResult.Installed) {
+        return $latexmkResult
+    }
+
+    try {
+        $null = Get-Command quarto -ErrorAction Stop
+    } catch {
+        return @{
+            Installed = $false
+            Version = ""
+        }
+    }
+
+    $output = (& quarto check 2>&1 | Out-String)
+    if (-not $output) {
+        return @{
+            Installed = $false
+            Version = ""
+        }
+    }
+
+    if ($output -match 'TeX:\s*\(not detected\)') {
+        return @{
+            Installed = $false
+            Version = ""
+        }
+    }
+
+    $lines = $output -split "`r?`n"
+    $inSection = $false
+    $latexSection = @()
+
+    foreach ($line in $lines) {
+        if (-not $inSection -and $line -match 'Checking\s+LaTeX|Checking\s+Latex') {
+            $inSection = $true
+            continue
+        }
+
+        if ($inSection -and $line -match '^\[[^\]]+\]\s+Checking ') {
+            break
+        }
+
+        if ($inSection) {
+            $latexSection += $line
+        }
+    }
+
+    $using = ""
+    $version = ""
+
+    foreach ($line in $latexSection) {
+        if (-not $using -and $line -match 'Using:\s*(.+)$') {
+            $using = $matches[1].Trim()
+        }
+        if (-not $version -and $line -match 'Version:\s*(.+)$') {
+            $version = $matches[1].Trim()
+        }
+    }
+
+    $display = ""
+    if ($using -and $version) {
+        $display = "$using $version"
+    } elseif ($using) {
+        $display = $using
+    } elseif ($version) {
+        $display = $version
+    } elseif ($latexSection.Count -gt 0 -or $output -match 'Using:\s*') {
+        $display = "detected via quarto"
+    }
+
+    if ($display) {
+        return @{
+            Installed = $true
+            Version = $display
+        }
+    }
+
+    return @{
+        Installed = $false
+        Version = ""
+    }
+}
+
 # Function to check if Docker is installed
 function Test-Docker {
     try {
@@ -179,6 +268,8 @@ function Test-Dependency {
     
     if ($checkType -eq "cli") {
         $result = Test-CliTool -Command $Config.check.command
+    } elseif ($checkType -eq "tex") {
+        $result = Test-Tex
     } elseif ($checkType -eq "r_package") {
         $result = Test-RPackage -Package $Config.check.package
     }

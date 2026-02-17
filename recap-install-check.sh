@@ -90,6 +90,72 @@ check_r_package() {
     [[ -n "$version_output" ]] && return 0 || return 1
 }
 
+# Function to check if TeX is available
+# Strategy:
+# 1) Try latexmk (same as cli check)
+# 2) If not found, parse `quarto check` output
+check_tex() {
+    local latexmk_version
+    latexmk_version=$(check_cli_tool "latexmk" 2>/dev/null || echo "")
+    if [[ -n "$latexmk_version" ]]; then
+        echo "$latexmk_version"
+        return 0
+    fi
+
+    if ! command -v quarto &> /dev/null; then
+        echo ""
+        return 1
+    fi
+
+    local quarto_output
+    quarto_output=$(quarto check 2>&1 || true)
+
+    if [[ -z "$quarto_output" ]]; then
+        echo ""
+        return 1
+    fi
+
+    if echo "$quarto_output" | grep -Eiq 'TeX:[[:space:]]*\(not detected\)'; then
+        echo ""
+        return 1
+    fi
+
+    local latex_section
+    latex_section=$(echo "$quarto_output" | awk '
+        /Checking LaTeX|Checking Latex/ { in_section=1; next }
+        in_section && /^\[[^]]+\][[:space:]]+Checking / { exit }
+        in_section { print }
+    ')
+
+    local using
+    local version
+    using=$(echo "$latex_section" | sed -nE 's/.*Using:[[:space:]]*//p' | head -1 | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+    version=$(echo "$latex_section" | sed -nE 's/.*Version:[[:space:]]*//p' | head -1 | sed 's/^[[:space:]]*//; s/[[:space:]]*$//')
+
+    if [[ -n "$using" && -n "$version" ]]; then
+        echo "$using $version"
+        return 0
+    fi
+
+    if [[ -n "$using" ]]; then
+        echo "$using"
+        return 0
+    fi
+
+    if [[ -n "$version" ]]; then
+        echo "$version"
+        return 0
+    fi
+
+    if [[ -n "$latex_section" ]] || echo "$quarto_output" | grep -Eiq 'Using:[[:space:]]*'; then
+        echo "detected via quarto"
+        return 0
+    fi
+
+    echo ""
+    return 1
+}
+
 # Function to check if Docker is installed
 check_docker() {
     if command -v docker &> /dev/null; then
@@ -139,6 +205,9 @@ check_dependency() {
     if [[ "$check_type" == "cli" ]]; then
         local command=$(echo "$dep_config" | jq -r '.check.command')
         installed_version=$(check_cli_tool "$command" 2>/dev/null || echo "")
+        [[ -n "$installed_version" ]] && is_installed=true
+    elif [[ "$check_type" == "tex" ]]; then
+        installed_version=$(check_tex 2>/dev/null || echo "")
         [[ -n "$installed_version" ]] && is_installed=true
     elif [[ "$check_type" == "r_package" ]]; then
         local package=$(echo "$dep_config" | jq -r '.check.package')

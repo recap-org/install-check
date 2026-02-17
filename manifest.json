@@ -65,8 +65,7 @@
                 }
             },
             "check": {
-                "type": "cli",
-                "command": "latexmk"
+                "type": "tex"
             },
             "message": "You won't be able to render Quarto reports as PDFs."
         }
@@ -85,8 +84,7 @@
                 }
             },
             "check": {
-                "type": "cli",
-                "command": "latexmk"
+                "type": "tex"
             },
             "message": "You won't be able to render Quarto reports as PDFs (the template's default)."
         },
