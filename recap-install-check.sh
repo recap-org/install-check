@@ -53,24 +53,29 @@ check_cli_tool() {
     local version_output=""
     case "$command" in
         git)
-            version_output=$($command --version 2>&1 | grep -oP '\d+\.\d+\.\d+' | head -1)
+            version_output=$($command --version 2>&1 | grep -Eo '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)
             ;;
         R)
             version_output=$(Rscript -e "cat(paste0(R.version\$major,'.',R.version\$minor))" 2>&1 | tail -1)
             ;;
         quarto)
-            version_output=$($command --version 2>&1 | grep -oP '\d+\.\d+\.\d+' | head -1)
+            version_output=$($command --version 2>&1 | grep -Eo '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)
             ;;
         latexmk)
-            version_output=$($command -version 2>&1 | grep -oP '\d+\.\d+[a-z]?' | head -1)
+            version_output=$($command -version 2>&1 | grep -Eo '[0-9]+\.[0-9]+[a-z]?' | head -1)
             ;;
         make)
-            version_output=$($command --version 2>&1 | grep -oP '\d+\.\d+' | head -1)
+            version_output=$($command --version 2>&1 | grep -Eo '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)
             ;;
         *)
-            version_output=$($command --version 2>&1 | grep -oP '\d+\.\d+\.\d+' | head -1 || echo "unknown")
+            version_output=$($command --version 2>&1 | grep -Eo '[0-9]+\.[0-9]+(\.[0-9]+)?' | head -1)
             ;;
     esac
+
+    # Command exists even if version parsing failed
+    if [[ -z "$version_output" ]]; then
+        version_output="unknown"
+    fi
     
     echo "$version_output"
     return 0
@@ -205,7 +210,9 @@ check_dependency() {
     if [[ "$check_type" == "cli" ]]; then
         local command=$(echo "$dep_config" | jq -r '.check.command')
         installed_version=$(check_cli_tool "$command" 2>/dev/null || echo "")
-        [[ -n "$installed_version" ]] && is_installed=true
+        if command -v "$command" &> /dev/null; then
+            is_installed=true
+        fi
     elif [[ "$check_type" == "tex" ]]; then
         installed_version=$(check_tex 2>/dev/null || echo "")
         [[ -n "$installed_version" ]] && is_installed=true
@@ -250,13 +257,16 @@ check_dependency() {
         echo -e "${GREEN}  ✓ Installed${NC} (version: $installed_version)"
         
         # Check version if min_version is specified
-        if [[ -n "$min_version" ]]; then
+        if [[ -n "$min_version" && "$installed_version" != "unknown" ]]; then
             if version_gte "$installed_version" "$min_version"; then
                 echo -e "${GREEN}  ✓ Version meets requirement (>= $min_version)${NC}"
             else
                 echo -e "${YELLOW}  ⚠ Version mismatch (required >= $min_version, have $installed_version)${NC}"
                 echo "  Some features may not work as expected"
             fi
+        elif [[ -n "$min_version" ]]; then
+            echo -e "${YELLOW}  ⚠ Version could not be parsed${NC}"
+            echo "  Required version: >= $min_version"
         fi
     fi
 }
