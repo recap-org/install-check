@@ -156,7 +156,7 @@ check_dependency() {
         else
             echo -e "${RED}  ✗ Not installed (recommended)${NC}"
         fi
-        echo "  $message"
+        echo "$message" | while IFS= read -r line; do echo "  $line"; done
         
         # Show install hint for macOS
         if [[ -n "$install_hint" ]]; then
@@ -167,12 +167,12 @@ check_dependency() {
                 if [[ "$brew_available" == "true" ]]; then
                     local brew_hint=$(echo "$macos_hint" | jq -r '.brew // empty')
                     if [[ -n "$brew_hint" ]]; then
-                        echo -e "$brew_hint" | sed 's/\\n/\n  /g' | sed 's/^/  /'
+                        echo "$brew_hint" | while IFS= read -r line; do echo "  $line"; done
                     fi
                 else
                     local direct_hint=$(echo "$macos_hint" | jq -r '.direct // empty')
                     if [[ -n "$direct_hint" ]]; then
-                        echo -e "$direct_hint" | sed 's/\\n/\n  /g' | sed 's/^/  /'
+                        echo "$direct_hint" | while IFS= read -r line; do echo "  $line"; done
                     fi
                 fi
             fi
@@ -248,11 +248,14 @@ brew_available="false"
 if check_brew; then
     brew_available="true"
 else
-    echo -e "${YELLOW}Homebrew not found.${NC}"
-    echo "Installing Homebrew is recommended on macOS because it makes it easy to"
-    echo "install and keep research software up to date."
-    echo "Learn more and install Homebrew:"
-    echo "https://brew.sh"
+    echo -e "${BLUE}╔════════════════════════════════════════════════════════════════════╗${NC}"
+    echo -e "${BLUE}║${NC} ${YELLOW}⚠ Homebrew not found${NC}"
+    echo -e "${BLUE}║${NC} Installing Homebrew is recommended on macOS because it makes it"
+    echo -e "${BLUE}║${NC} easy to install and keep research software up to date."
+    echo -e "${BLUE}║${NC} The installation info we provide below does not use Homebrew."
+    echo -e "${BLUE}║${NC}"
+    echo -e "${BLUE}║${NC} Learn more and install Homebrew: https://brew.sh"
+    echo -e "${BLUE}╚════════════════════════════════════════════════════════════════════╝${NC}"
     echo ""
 fi
 
