@@ -213,19 +213,40 @@ function Test-CliTool {
 
 # Function to check if an R package is installed
 function Test-RPackage {
-    param([string]$Package)
+    param([string]$Package, [object]$Config = $null)
     
+    $rscriptPath = $null
+    
+    # First try to find Rscript in PATH
     try {
-        $null = Get-Command Rscript -ErrorAction Stop
-        $version = & Rscript -e "tryCatch(cat(as.character(packageVersion('$Package'))), error = function(e) cat(''))" 2>&1
-        
-        if ($version) {
-            return @{
-                Installed = $true
-                Version = $version
+        $cmd = Get-Command Rscript -CommandType Application -ErrorAction Stop
+        $rscriptPath = $cmd.Source
+    } catch {
+        # Not in PATH, try registry for R installation
+        $rRegistryInfo = Find-AppInRegistry -PartialName "R for Windows"
+        if (-not $rRegistryInfo) {
+            $rRegistryInfo = Find-AppInRegistry -PartialName "R x64"
+        }
+        if ($rRegistryInfo -and $rRegistryInfo.InstallLocation) {
+            $rscriptPath = Join-Path $rRegistryInfo.InstallLocation "bin\Rscript.exe"
+            if (-not (Test-Path $rscriptPath)) {
+                $rscriptPath = $null
             }
         }
-    } catch {
+    }
+    
+    if ($rscriptPath) {
+        try {
+            $version = & $rscriptPath -e "tryCatch(cat(as.character(packageVersion('$Package'))), error = function(e) cat(''))" 2>&1
+            
+            if ($version) {
+                return @{
+                    Installed = $true
+                    Version = $version
+                }
+            }
+        } catch {
+        }
     }
     
     return @{
@@ -380,7 +401,7 @@ function Test-Dependency {
     } elseif ($checkType -eq "tex") {
         $result = Test-Tex
     } elseif ($checkType -eq "r_package") {
-        $result = Test-RPackage -Package $Config.check.package
+        $result = Test-RPackage -Package $Config.check.package -Config $Config
     }
     
     # Output results
