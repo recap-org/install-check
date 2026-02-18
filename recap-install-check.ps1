@@ -155,7 +155,15 @@ function Test-Tex {
         }
     }
 
-    $output = (& quarto check 2>&1 | Out-String)
+    $output = $null
+    $ErrorActionPreference = "Continue"
+    try {
+        $output = (& quarto check 2>&1 | Out-String)
+    } catch {
+        # Ignore errors from quarto check
+    }
+    $ErrorActionPreference = "Stop"
+    
     if (-not $output) {
         return @{
             Installed = $false
@@ -175,16 +183,19 @@ function Test-Tex {
     $latexSection = @()
 
     foreach ($line in $lines) {
-        if (-not $inSection -and $line -match 'Checking\s+LaTeX|Checking\s+Latex') {
+        # Look for the final status line "[>] Checking LaTeX"
+        if (-not $inSection -and $line -match '\[>\]\s+Checking\s+(LaTeX|Latex)') {
             $inSection = $true
             continue
         }
 
-        if ($inSection -and $line -match '^\[[^\]]+\]\s+Checking ') {
+        # Stop when we hit the next section (another [>] Checking line, but not LaTeX)
+        if ($inSection -and $line -match '^\[.\]\s+Checking ' -and $line -notmatch 'LaTeX|Latex') {
             break
         }
 
-        if ($inSection) {
+        # Collect indented lines that are part of the LaTeX section
+        if ($inSection -and $line -match '^\s+\w') {
             $latexSection += $line
         }
     }
