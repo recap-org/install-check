@@ -4,7 +4,7 @@
             "required": false,
             "install_hint": {
                 "windows": {
-                    "winget": "In Terminal, run:\nwinget install -e --id Git.Git"
+                    "winget": "In Terminal, run:\nwinget install -e --id Git.Git\nThen reopen your terminal."
                 },
                 "macos": {
                     "brew": "In Terminal, run:\nxcode-select --install",
@@ -42,7 +42,7 @@
             "min_version": "1.8",
             "install_hint": {
                 "windows": {
-                    "winget": "In Terminal, run:\nwinget install -e --id Posit.Quarto"
+                    "winget": "In Terminal, run:\nwinget install -e --id Posit.Quarto\nThen reopen your terminal."
                 },
                 "macos": {
                     "brew": "In Terminal, run:\nbrew install quarto",
@@ -134,7 +134,7 @@
             "required": true,
             "install_hint": {
                 "windows": {
-                    "winget": "In terminal, run:\nwinget install -e --id MiKTeX.MiKTeX\nThen open MikTeX to set it up and restart your computer."
+                    "winget": "In terminal, run:\nwinget install -e --id MiKTeX.MiKTeX\nAlso install Perl. In Terminal, run:\nwinget install -e --id StrawberryPerl.StrawberryPerl\nThen open MikTeX to set it up. Make sure you install the latexmk package.\nThen reopen your terminal."
                 },
                 "macos": {
                     "brew": "In Terminal, run:\nbrew install --cask mactex-no-gui\nThen reopen your terminal.",
