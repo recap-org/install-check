@@ -53,63 +53,161 @@ function Get-Dependencies {
     return $deps
 }
 
+# Function to find an application in Windows registry
+function Find-AppInRegistry {
+    param([string]$PartialName)
+    
+    $registryPaths = @(
+        "HKLM:\Software\Microsoft\Windows\CurrentVersion\Uninstall",
+        "HKLM:\Software\WOW6432Node\Microsoft\Windows\CurrentVersion\Uninstall",
+        "HKCU:\Software\Microsoft\Windows\CurrentVersion\Uninstall"
+    )
+    
+    foreach ($regPath in $registryPaths) {
+        if (Test-Path $regPath) {
+            try {
+                $items = @(Get-ChildItem $regPath -ErrorAction SilentlyContinue)
+                foreach ($item in $items) {
+                    $displayName = $item.GetValue("DisplayName")
+                    if ($displayName -like "*$PartialName*") {
+                        return @{
+                            DisplayName = $displayName
+                            InstallLocation = $item.GetValue("InstallLocation")
+                            DisplayVersion = $item.GetValue("DisplayVersion")
+                        }
+                    }
+                }
+            } catch {
+                # Continue to next registry path
+            }
+        }
+    }
+    
+    return $null
+}
+
 # Function to check if a CLI tool is installed and get its version
 function Test-CliTool {
-    param([string]$Command)
+    param([string]$Command, [object]$Config = $null)
     
+    $cmdPath = $null
+    $registryInfo = $null
+    
+    # First try to find it in PATH (exclude aliases)
     try {
-        $null = Get-Command $Command -ErrorAction Stop
-        
-        # Try to get version
-        $versionOutput = ""
-        switch ($Command) {
-            "git" {
-                $output = & git --version 2>&1
-                if ($output -match '(\d+\.\d+\.\d+)') {
-                    $versionOutput = $matches[1]
-                }
-            }
-            "R" {
-                $output = & Rscript -e "cat(paste0(R.version`$major,'.',R.version`$minor))" 2>&1 | Select-Object -Last 1
-                $versionOutput = $output
-            }
-            "quarto" {
-                $output = & quarto --version 2>&1
-                if ($output -match '(\d+\.\d+\.\d+)') {
-                    $versionOutput = $matches[1]
-                }
-            }
-            "latexmk" {
-                $output = & latexmk -version 2>&1
-                if ($output -match '(\d+\.\d+[a-z]?)') {
-                    $versionOutput = $matches[1]
-                }
-            }
-            "make" {
-                $output = & make --version 2>&1
-                if ($output -match '(\d+\.\d+)') {
-                    $versionOutput = $matches[1]
-                }
-            }
-            default {
-                $output = & $Command --version 2>&1
-                if ($output -match '(\d+\.\d+\.\d+)') {
-                    $versionOutput = $matches[1]
-                } else {
-                    $versionOutput = "unknown"
-                }
-            }
-        }
-        
-        return @{
-            Installed = $true
-            Version = $versionOutput
-        }
+        $cmd = Get-Command $Command -CommandType Application -ErrorAction Stop
+        $cmdPath = $cmd.Source
     } catch {
-        return @{
-            Installed = $false
-            Version = ""
+        # Not in PATH, will try registry below
+    }
+    
+    # If not in PATH or we want to check registry, try registry lookup
+    if (($null -eq $cmdPath) -and $Config -and $Config.check.windows_registry) {
+        $registryInfo = Find-AppInRegistry -PartialName $Config.check.windows_registry
+        if ($registryInfo -and $registryInfo.InstallLocation) {
+            # Try to construct path to executable
+            # For R, look for Rscript.exe; for git/quarto, assume command-name.exe
+            $exeName = if ($Command -eq "R") { "Rscript.exe" } else { "$Command.exe" }
+            $cmdPath = Join-Path $registryInfo.InstallLocation "bin\$exeName"
+            if (-not (Test-Path $cmdPath)) {
+                $cmdPath = Join-Path $registryInfo.InstallLocation $exeName
+                if (-not (Test-Path $cmdPath)) {
+                    $cmdPath = $null
+                }
+            }
         }
+    }
+    
+    # Now also get registry info even if we found the command on PATH, for version fallback
+    if ($cmdPath -and (-not $registryInfo) -and $Config -and $Config.check.windows_registry) {
+        $registryInfo = Find-AppInRegistry -PartialName $Config.check.windows_registry
+    }
+    
+    # If we found the command, try to get its version
+    if ($cmdPath) {
+        try {
+            $versionOutput = ""
+            switch ($Command) {
+                "git" {
+                    $output = & $cmdPath --version 2>&1
+                    if ($output -match '(\d+\.\d+\.\d+)') {
+                        $versionOutput = $matches[1]
+                    }
+                }
+                "R" {
+                    $output = & $cmdPath -e "cat(paste0(R.version`$major,'.',R.version`$minor))" 2>&1 | Select-Object -Last 1
+                    $versionOutput = $output
+                }
+                "quarto" {
+                    $output = & $cmdPath --version 2>&1
+                    if ($output -match '(\d+\.\d+\.\d+)') {
+                        $versionOutput = $matches[1]
+                    }
+                }
+                "latexmk" {
+                    $output = & $cmdPath -version 2>&1
+                    if ($output -match '(\d+\.\d+[a-z]?)') {
+                        $versionOutput = $matches[1]
+                    }
+                }
+                "make" {
+                    $output = & $cmdPath --version 2>&1
+                    if ($output -match '(\d+(?:\.\d+)+)') {
+                        $versionOutput = $matches[1]
+                    }
+                }
+                default {
+                    $output = & $cmdPath --version 2>&1
+                    if ($output -match '(\d+\.\d+\.\d+)') {
+                        $versionOutput = $matches[1]
+                    } else {
+                        $versionOutput = "unknown"
+                    }
+                }
+            }
+            
+            if ($versionOutput) {
+                return @{
+                    Installed = $true
+                    Version = $versionOutput
+                }
+            }
+            
+            # If regex didn't match, try registry DisplayVersion as fallback
+            if ($registryInfo -and $registryInfo.DisplayVersion) {
+                return @{
+                    Installed = $true
+                    Version = $registryInfo.DisplayVersion
+                }
+            }
+            
+            # If we got here, the executable was found but we couldn't extract version
+            # Report as installed with "unknown" version
+            return @{
+                Installed = $true
+                Version = "unknown"
+            }
+        } catch {
+            # If we got here, there was an error running the command
+            # Fall back to registry DisplayVersion if available
+            if ($registryInfo -and $registryInfo.DisplayVersion) {
+                return @{
+                    Installed = $true
+                    Version = $registryInfo.DisplayVersion
+                }
+            }
+            
+            # If no version available at all, just report as installed
+            return @{
+                Installed = $true
+                Version = "unknown"
+            }
+        }
+    }
+    
+    return @{
+        Installed = $false
+        Version = ""
     }
 }
 
@@ -278,7 +376,7 @@ function Test-Dependency {
     $result = $null
     
     if ($checkType -eq "cli") {
-        $result = Test-CliTool -Command $Config.check.command
+        $result = Test-CliTool -Command $Config.check.command -Config $Config
     } elseif ($checkType -eq "tex") {
         $result = Test-Tex
     } elseif ($checkType -eq "r_package") {

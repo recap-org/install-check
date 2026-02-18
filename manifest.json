@@ -13,7 +13,8 @@
             },
             "check": {
                 "type": "cli",
-                "command": "git"
+                "command": "git",
+                "windows_registry": "Git"
             },
             "message": "Version control won't be available.\nThe help page explains how to do version control with `git` and why it is useful:\nhttps://recap-org.github.io/docs/version-control/"
         },
@@ -31,7 +32,8 @@
             },
             "check": {
                 "type": "cli",
-                "command": "R"
+                "command": "R",
+                "windows_registry": "R for Windows"
             },
             "message": "R is required to run analyses and generate results in RECAP R projects."
         },
@@ -49,7 +51,8 @@
             },
             "check": {
                 "type": "cli",
-                "command": "quarto"
+                "command": "quarto",
+                "windows_registry": "Quarto"
             },
             "message": "Quarto is required to build reproducible reports and documents in RECAP projects."
         },
@@ -101,7 +104,8 @@
             },
             "check": {
                 "type": "cli",
-                "command": "make"
+                "command": "make",
+                "windows_registry": "make"
             },
             "message": "Automated builds with `make` will be unavailable.\nThe help page explains what `make` is and why it is useful:\nhttps://recap-org.github.io/docs/building-with-make.html"
         }
