@@ -13,15 +13,38 @@ $Script:Colors = @{
 # Get the directory where the script is located
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ManifestFile = Join-Path $ScriptDir "manifest.json"
+$ManifestUrl = "https://github.com/recap-org/install-check/blob/main/manifest.json?raw=1"
 
-# Check if manifest.json exists
-if (-not (Test-Path $ManifestFile)) {
-    Write-Host "Error: manifest.json not found in $ScriptDir" -ForegroundColor $Colors.Red
-    exit 1
+# Load manifest from disk or in-memory download fallback
+if (Test-Path $ManifestFile) {
+    try {
+        $manifestJson = Get-Content -Path $ManifestFile -Raw
+    } catch {
+        Write-Host "Error: failed to read manifest.json from $ScriptDir" -ForegroundColor $Colors.Red
+        exit 1
+    }
+} else {
+    Write-Host "Downloading manifest..." -ForegroundColor $Colors.Blue
+
+    try {
+        $manifestJson = (Invoke-WebRequest -Uri $ManifestUrl -ErrorAction Stop).Content
+    } catch {
+        Write-Host "Error: failed to download manifest.json from $ManifestUrl" -ForegroundColor $Colors.Red
+        exit 1
+    }
+
+    if ([string]::IsNullOrWhiteSpace($manifestJson)) {
+        Write-Host "Error: downloaded manifest.json is empty." -ForegroundColor $Colors.Red
+        exit 1
+    }
 }
 
-# Load manifest
-$Manifest = Get-Content $ManifestFile | ConvertFrom-Json
+try {
+    $Manifest = $manifestJson | ConvertFrom-Json -ErrorAction Stop
+} catch {
+    Write-Host "Error: downloaded manifest.json is not valid JSON." -ForegroundColor $Colors.Red
+    exit 1
+}
 
 # Function to get all available templates
 function Get-Templates {
