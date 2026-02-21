@@ -12,25 +12,60 @@ NC='\033[0m' # No Color
 # Get the directory where the script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST_FILE="$SCRIPT_DIR/manifest.json"
+MANIFEST_URL="https://github.com/recap-org/install-check/blob/main/manifest.json?raw=1"
+MANIFEST_CONTENT=""
 
-# Check if manifest.json exists
+# Check if manifest.json exists, otherwise download it in-memory
 if [[ ! -f "$MANIFEST_FILE" ]]; then
-    echo -e "${RED}Error: manifest.json not found in $SCRIPT_DIR${NC}"
-    exit 1
+    echo -e "${BLUE}Downloading manifest...${NC}"
+
+    if command -v curl &> /dev/null; then
+        if ! MANIFEST_CONTENT=$(curl -fsSL "$MANIFEST_URL"); then
+            echo -e "${RED}Error: failed to download manifest.json from $MANIFEST_URL${NC}"
+            exit 1
+        fi
+    elif command -v wget &> /dev/null; then
+        if ! MANIFEST_CONTENT=$(wget -qO- "$MANIFEST_URL"); then
+            echo -e "${RED}Error: failed to download manifest.json from $MANIFEST_URL${NC}"
+            exit 1
+        fi
+    else
+        echo -e "${RED}Error: manifest.json is missing and neither curl nor wget is installed.${NC}"
+        exit 1
+    fi
+
+    if [[ -z "$MANIFEST_CONTENT" ]]; then
+        echo -e "${RED}Error: downloaded manifest.json is empty.${NC}"
+        exit 1
+    fi
+
+    if ! echo "$MANIFEST_CONTENT" | jq -e . > /dev/null 2>&1; then
+        echo -e "${RED}Error: downloaded manifest.json is not valid JSON.${NC}"
+        exit 1
+    fi
 fi
+
+# Function to query manifest from local file or in-memory fallback
+manifest_jq() {
+    if [[ -n "$MANIFEST_CONTENT" ]]; then
+        echo "$MANIFEST_CONTENT" | jq "$@"
+    else
+        jq "$@" "$MANIFEST_FILE"
+    fi
+}
 
 # Function to get all available templates
 get_templates() {
-    jq -r 'keys[]' "$MANIFEST_FILE"
+    manifest_jq -r 'keys[]'
 }
 
 # Function to get dependencies for a template (including inherited ones)
 get_dependencies() {
     local template=$1
-    local deps=$(jq ".\"$template\" | del(.extends)" "$MANIFEST_FILE")
+    local deps=$(manifest_jq ".\"$template\" | del(.extends)")
     
     # Check if template extends another template
-    local extends=$(jq -r ".\"$template\".extends // empty" "$MANIFEST_FILE")
+    local extends=$(manifest_jq -r ".\"$template\".extends // empty")
     if [[ -n "$extends" ]]; then
         # Get parent dependencies and merge with current
         local parent_deps=$(get_dependencies "$extends")
@@ -279,7 +314,7 @@ echo ""
 templates=($(get_templates))
 
 if [[ ${#templates[@]} -eq 0 ]]; then
-    echo -e "${RED}Error: No templates found in manifest.json${NC}"
+    echo -e "${RED}Error: No templates found in manifest${NC}"
     exit 1
 fi
 
