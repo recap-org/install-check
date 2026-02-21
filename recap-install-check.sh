@@ -2,6 +2,8 @@
 
 set -e
 
+SCRIPT_VERSION="2026.1.2"
+
 # Color codes for output
 RED='\033[0;31m'
 GREEN='\033[0;32m'
@@ -12,8 +14,8 @@ NC='\033[0m' # No Color
 # Get the directory where the script is located
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 MANIFEST_FILE="$SCRIPT_DIR/manifest.json"
-MANIFEST_URL="https://github.com/recap-org/install-check/blob/main/manifest.json?raw=1"
 MANIFEST_CONTENT=""
+MANIFEST_URL="https://github.com/recap-org/install-check/releases/download/v${SCRIPT_VERSION}/manifest.json"
 
 # Check if manifest.json exists, otherwise download it in-memory
 if [[ ! -f "$MANIFEST_FILE" ]]; then
@@ -21,12 +23,12 @@ if [[ ! -f "$MANIFEST_FILE" ]]; then
 
     if command -v curl &> /dev/null; then
         if ! MANIFEST_CONTENT=$(curl -fsSL "$MANIFEST_URL"); then
-            echo -e "${RED}Error: failed to download manifest.json from $MANIFEST_URL${NC}"
+            echo -e "${RED}Error: failed to download manifest.json for version $SCRIPT_VERSION from release assets.${NC}"
             exit 1
         fi
     elif command -v wget &> /dev/null; then
         if ! MANIFEST_CONTENT=$(wget -qO- "$MANIFEST_URL"); then
-            echo -e "${RED}Error: failed to download manifest.json from $MANIFEST_URL${NC}"
+            echo -e "${RED}Error: failed to download manifest.json for version $SCRIPT_VERSION from release assets.${NC}"
             exit 1
         fi
     else
@@ -307,7 +309,7 @@ check_dependency() {
 }
 
 # Main script
-echo -e "${BLUE}=== RECAP Install Check ===${NC}"
+echo -e "${BLUE}=== RECAP Install Check ${SCRIPT_VERSION} ===${NC}"
 echo ""
 
 # Get available templates

@@ -1,6 +1,7 @@
 # RECAP Install Check - Windows PowerShell Script
 
 $ErrorActionPreference = "Stop"
+$ScriptVersion = "2026.1.2"
 
 # Color codes for output
 $Script:Colors = @{
@@ -13,7 +14,7 @@ $Script:Colors = @{
 # Get the directory where the script is located
 $ScriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
 $ManifestFile = Join-Path $ScriptDir "manifest.json"
-$ManifestUrl = "https://github.com/recap-org/install-check/blob/main/manifest.json?raw=1"
+$ManifestUrl = "https://github.com/recap-org/install-check/releases/download/v$ScriptVersion/manifest.json"
 
 # Load manifest from disk or in-memory download fallback
 if (Test-Path $ManifestFile) {
@@ -29,7 +30,7 @@ if (Test-Path $ManifestFile) {
     try {
         $manifestJson = (Invoke-WebRequest -Uri $ManifestUrl -ErrorAction Stop).Content
     } catch {
-        Write-Host "Error: failed to download manifest.json from $ManifestUrl" -ForegroundColor $Colors.Red
+        Write-Host "Error: failed to download manifest.json for version $ScriptVersion from release assets." -ForegroundColor $Colors.Red
         exit 1
     }
 
@@ -511,7 +512,7 @@ function Test-Dependency {
 }
 
 # Main script
-Write-Host "=== RECAP Install Check ===" -ForegroundColor $Colors.Blue
+Write-Host "=== RECAP Install Check $ScriptVersion ===" -ForegroundColor $Colors.Blue
 Write-Host ""
 
 # Get available templates
