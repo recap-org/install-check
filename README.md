@@ -23,7 +23,7 @@ bash <(curl -fsSL "https://github.com/recap-org/install-check/blob/main/recap-in
 ### Windows
 
 ```powershell
-$scriptPath = "$env:TEMP\recap-install-check.ps1"; Invoke-WebRequest -Uri https://raw.githubusercontent.com/recap-org/install-check/main/recap-install-check.ps1 -Outfile $scriptPath -UseBasicParsing; & powershell -ExecutionPolicy Bypass -File $scriptPath
+iwr https://raw.githubusercontent.com/recap-org/install-check/main/recap-install-check.ps1 -Outfile $env:TEMP\recap.ps1 -UseBasicParsing; powershell -ExecutionPolicy Bypass -File $env:TEMP\recap.ps1
 ```
 
 When prompted, grant Invoke-WebRequest permission to download and execute content.  
