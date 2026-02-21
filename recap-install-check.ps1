@@ -115,6 +115,7 @@ function Test-CliTool {
     
     $cmdPath = $null
     $registryInfo = $null
+    $foundViaRegistry = $false
     
     # First try to find it in PATH (exclude aliases)
     try {
@@ -136,7 +137,11 @@ function Test-CliTool {
                 $cmdPath = Join-Path $registryInfo.InstallLocation $exeName
                 if (-not (Test-Path $cmdPath)) {
                     $cmdPath = $null
+                } else {
+                    $foundViaRegistry = $true
                 }
+            } else {
+                $foundViaRegistry = $true
             }
         }
     }
@@ -193,6 +198,8 @@ function Test-CliTool {
                 return @{
                     Installed = $true
                     Version = $versionOutput
+                    FoundViaRegistry = $foundViaRegistry
+                    RegistryInstallPath = if ($registryInfo) { $registryInfo.InstallLocation } else { "" }
                 }
             }
             
@@ -201,6 +208,8 @@ function Test-CliTool {
                 return @{
                     Installed = $true
                     Version = $registryInfo.DisplayVersion
+                    FoundViaRegistry = $foundViaRegistry
+                    RegistryInstallPath = $registryInfo.InstallLocation
                 }
             }
             
@@ -209,6 +218,8 @@ function Test-CliTool {
             return @{
                 Installed = $true
                 Version = "unknown"
+                FoundViaRegistry = $foundViaRegistry
+                RegistryInstallPath = if ($registryInfo) { $registryInfo.InstallLocation } else { "" }
             }
         } catch {
             # If we got here, there was an error running the command
@@ -217,6 +228,8 @@ function Test-CliTool {
                 return @{
                     Installed = $true
                     Version = $registryInfo.DisplayVersion
+                    FoundViaRegistry = $foundViaRegistry
+                    RegistryInstallPath = $registryInfo.InstallLocation
                 }
             }
             
@@ -224,6 +237,8 @@ function Test-CliTool {
             return @{
                 Installed = $true
                 Version = "unknown"
+                FoundViaRegistry = $foundViaRegistry
+                RegistryInstallPath = if ($registryInfo) { $registryInfo.InstallLocation } else { "" }
             }
         }
     }
@@ -231,6 +246,8 @@ function Test-CliTool {
     return @{
         Installed = $false
         Version = ""
+        FoundViaRegistry = $false
+        RegistryInstallPath = ""
     }
 }
 
@@ -266,6 +283,8 @@ function Test-RPackage {
                 return @{
                     Installed = $true
                     Version = $version
+                    FoundViaRegistry = $false
+                    RegistryInstallPath = ""
                 }
             }
         } catch {
@@ -275,6 +294,8 @@ function Test-RPackage {
     return @{
         Installed = $false
         Version = ""
+        FoundViaRegistry = $false
+        RegistryInstallPath = ""
     }
 }
 
@@ -294,6 +315,8 @@ function Test-Tex {
         return @{
             Installed = $false
             Version = ""
+            FoundViaRegistry = $false
+            RegistryInstallPath = ""
         }
     }
 
@@ -317,6 +340,8 @@ function Test-Tex {
         return @{
             Installed = $false
             Version = ""
+            FoundViaRegistry = $false
+            RegistryInstallPath = ""
         }
     }
 
@@ -369,12 +394,16 @@ function Test-Tex {
         return @{
             Installed = $true
             Version = $display
+            FoundViaRegistry = $false
+            RegistryInstallPath = ""
         }
     }
 
     return @{
         Installed = $false
         Version = ""
+        FoundViaRegistry = $false
+        RegistryInstallPath = ""
     }
 }
 
@@ -467,6 +496,16 @@ function Test-Dependency {
                 Write-Host "  ⚠ Version mismatch (required >= $minVersion, have $($result.Version))" -ForegroundColor $Colors.Yellow
                 Write-Host "  Some features may not work as expected"
             }
+        }
+        
+        # Show warning if found via registry but not on PATH
+        if ($result.FoundViaRegistry -and $result.RegistryInstallPath) {
+            Write-Host ""
+            Write-Host "  ⚠ Not on PATH" -ForegroundColor $Colors.Yellow
+            Write-Host "  Location: $($result.RegistryInstallPath)"
+            Write-Host "  Some functionalities may not be available."
+            Write-Host "  Add the above directory to your PATH for command-line access."
+            Write-Host "  For help, see: https://www.youtube.com/watch?v=Gp_evQMHNDo"
         }
     }
 }
