@@ -1,6 +1,4 @@
-﻿# RECAP Install Check - Windows PowerShell Script
-
-$ErrorActionPreference = "Stop"
+﻿$ErrorActionPreference = "Stop"
 
 # Color codes for output
 $Script:Colors = @{
