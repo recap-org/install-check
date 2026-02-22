@@ -1,4 +1,4 @@
-# RECAP Install Check - Windows PowerShell Script
+﻿# RECAP Install Check - Windows PowerShell Script
 
 $ErrorActionPreference = "Stop"
 $ScriptVersion = "2026.1.2"
@@ -578,3 +578,4 @@ foreach ($depName in $dependencies.Keys) {
 
 Write-Host ""
 Write-Host "=== Check Complete ===" -ForegroundColor $Colors.Blue
+
