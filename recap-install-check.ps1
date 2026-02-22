@@ -1,4 +1,4 @@
-# RECAP Install Check - Windows PowerShell Script
+﻿# RECAP Install Check - Windows PowerShell Script
 
 $ErrorActionPreference = "Stop"
 $ScriptVersion = "2026.1.2"
@@ -19,7 +19,7 @@ $ManifestUrl = "https://github.com/recap-org/install-check/releases/download/v$S
 # Load manifest from disk or in-memory download fallback
 if (Test-Path $ManifestFile) {
     try {
-        $manifestJson = Get-Content -Path $ManifestFile -Raw
+        $manifestJson = Get-Content -Path $ManifestFile -Raw -Encoding utf8
     } catch {
         Write-Host "Error: failed to read manifest.json from $ScriptDir" -ForegroundColor $Colors.Red
         exit 1
@@ -28,7 +28,9 @@ if (Test-Path $ManifestFile) {
     Write-Host "Downloading manifest..." -ForegroundColor $Colors.Blue
 
     try {
-        $manifestJson = (Invoke-WebRequest -Uri $ManifestUrl -ErrorAction Stop).Content
+        $response = Invoke-WebRequest -Uri $ManifestUrl -ErrorAction Stop
+        $bytes = $response.RawContentStream.ToArray()
+        $manifestJson = [System.Text.Encoding]::UTF8.GetString($bytes)
     } catch {
         Write-Host "Error: failed to download manifest.json for version $ScriptVersion from release assets." -ForegroundColor $Colors.Red
         exit 1
